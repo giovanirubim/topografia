@@ -157,7 +157,7 @@ const loadReadings = async () => {
 	return text
 }
 
-readings = loadReadings()
+readings = await loadReadings()
 readingsInput.value = readings
 
 calculate()
