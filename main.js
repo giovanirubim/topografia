@@ -100,6 +100,8 @@ const calculate = () => {
 		line.textContent = text
 		div.appendChild(line)
 	})
+
+	localStorage.setItem('readings', readings);
 }
 
 const resizeCanvas = () => {
@@ -147,8 +149,15 @@ window.addEventListener('resize', () => {
 	drawCanvas()
 })
 
-const req = await fetch('./readings.txt')
-readings = await req.text()
+const loadReadings = async () => {
+	let text = localStorage.getItem('readings')
+	if (text) return text;
+	const req = await fetch('./readings.txt')
+	text = await req.text()
+	return text
+}
+
+readings = loadReadings()
 readingsInput.value = readings
 
 calculate()
