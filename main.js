@@ -266,6 +266,7 @@ const loadReadings = async () => {
 				.trim()
 		)
 		.join('\n')
+		.toUpperCase()
 }
 
 readings = await loadReadings()
