@@ -128,8 +128,9 @@ const resizeCanvas = () => {
 
 const LABELS = 'labels'
 const VALUES = 'values'
-const viewModes = [LABELS, VALUES]
-let viewMode = VALUES
+const COLORS = 'colors'
+const viewModes = [LABELS, VALUES, COLORS]
+let viewMode = LABELS
 
 const drawViewMode = () => {
 	ctx.strokeStyle = 'rgba(255, 127, 0, 0.3)'
@@ -193,6 +194,31 @@ const drawValues = () => {
 	}
 }
 
+const drawColors = () => {
+	const nRows = mat.length
+	const nCols = mat[0].length
+	const values = Object.values(nodeVal)
+	const minVal = Math.min(...values)
+	const maxVal = Math.max(...values)
+	const range = maxVal - minVal
+
+	const minColor = [0, 0, 255]
+	const maxColor = [255, 255, 0]
+
+	for (let i = 0; i < nRows; i++) {
+		for (let j = 0; j < nCols; ++j) {
+			const point = mat[i][j]
+			const val = nodeVal[point]
+			if (val === undefined) continue
+			const ratio = (val - minVal) / range
+			const color = minColor.map((c, i) => c + (maxColor[i] - c) * ratio)
+			ctx.fillStyle = `rgb(${color.join(',')})`
+			const [x, y] = getCoord(point)
+			ctx.fillRect(x - space * 0.5, y - space * 0.5, space, space)
+		}
+	}
+}
+
 const drawCanvas = () => {
 	ctx.fillStyle = '#444'
 	ctx.fillRect(0, 0, canvas.width, canvas.height)
@@ -203,6 +229,9 @@ const drawCanvas = () => {
 			break
 		case VALUES:
 			drawValues()
+			break
+		case COLORS:
+			drawColors()
 			break
 	}
 }
