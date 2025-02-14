@@ -38,6 +38,7 @@ let nodeVal = {}
 let used = []
 
 const spreadMeasurements = () => {
+	used = []
 	let changed = true
 	let outputText = ''
 	while (changed) {
@@ -77,6 +78,7 @@ const calculate = () => {
 		.map((l) => l.trim())
 		.filter((l) => l && !l.includes('!'))
 		.map((l) => l.split(/\s+/))
+		.filter((l) => l.length === 3)
 		.map(([a, b, c]) => [a, b, parseFloat(c)])
 
 	const calcDist = (a, b) => {
@@ -94,6 +96,16 @@ const calculate = () => {
 
 	nodeVal = { A: 0 }
 	outputText += spreadMeasurements()
+
+	for (let [a, b, val] of edges) {
+		const aVal = nodeVal[a]
+		const bVal = nodeVal[b]
+		const diff = bVal - aVal
+		if (isNaN(diff)) continue
+		if (val !== diff) {
+			outputText += `Aviso: Leitura ${a} -> ${b} = ${val} difere do calculado\n`
+		}
+	}
 
 	const div = document.querySelector('#output')
 	div.innerHTML = ''
@@ -141,7 +153,7 @@ const drawViewMode = () => {
 }
 
 const drawValues = () => {
-	ctx.strokeStyle = 'rgba(0, 192, 255, 0.3)'
+	ctx.strokeStyle = 'rgba(0, 192, 255, 0.5)'
 	ctx.lineWidth = space * 0.05
 	ctx.lineCap = 'round'
 	ctx.lineJoin = 'round'
