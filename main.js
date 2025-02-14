@@ -222,10 +222,21 @@ window.addEventListener('resize', () => {
 
 const loadReadings = async () => {
 	let text = localStorage.getItem('readings')
-	if (text) return text
-	const req = await fetch('./readings.txt')
-	text = await req.text()
+	if (!text) {
+		const req = await fetch('./readings.txt')
+		text = await req.text()
+	}
 	return text
+		.trim()
+		.split('\n')
+		.map((l) =>
+			l
+				.trim()
+				.replace(/\s+/g, ' ')
+				.replace(/[^\s]+/g, (s) => s.padEnd(3, '  '))
+				.trim()
+		)
+		.join('\n')
 }
 
 readings = await loadReadings()
