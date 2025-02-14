@@ -15,6 +15,9 @@ const mat = grid
 	.split('\n')
 	.map((row) => row.trim().split(/\s+/))
 
+const highColor = [255, 127, 0]
+const lowColor = [32, 32, 192]
+
 const points = mat.flat()
 
 const toPos = {}
@@ -51,7 +54,7 @@ const spreadMeasurements = () => {
 				nodeVal[b] = val
 				used.push([a, b])
 			}
-			if (nodeVal[b] !== undefined && nodeVal[a] === undefined) {
+			if (nodeVal[a] === undefined && nodeVal[b] !== undefined) {
 				const val = nodeVal[b] - c
 				outputText += `${b} -> ${a} = ${nodeVal[b]} - ${c} = ${val}\n`
 				changed = true
@@ -132,36 +135,14 @@ const COLORS = 'colors'
 const viewModes = [LABELS, VALUES, COLORS]
 let viewMode = LABELS
 
-const drawViewMode = () => {
-	ctx.strokeStyle = 'rgba(255, 127, 0, 0.3)'
-	ctx.lineWidth = space * 0.1
-	ctx.lineCap = 'round'
-	ctx.lineJoin = 'round'
-	for (const [a, b] of edges) {
-		ctx.beginPath()
-		ctx.moveTo(...getCoord(a))
-		ctx.lineTo(...getCoord(b))
-		ctx.stroke()
-	}
-
-	ctx.font = space * 0.3 + 'px monospace'
-	ctx.textAlign = 'center'
-	ctx.textBaseline = 'middle'
-	ctx.fillStyle = '#fff'
-	for (const point of points) {
-		ctx.fillText(point, ...getCoord(point))
-	}
-}
-
-const drawValues = () => {
-	ctx.strokeStyle = 'rgba(0, 192, 255, 0.5)'
+const drawEdges = (edges) => {
 	ctx.lineWidth = space * 0.05
 	ctx.lineCap = 'round'
 	ctx.lineJoin = 'round'
-	const tip = space * 0.2
+	const tip = space * 0.15
 	const tilt = Math.PI * 0.85
-	const gap = space * 0.2
-	for (const [a, b] of used) {
+	const gap = space * 0.3
+	for (const [a, b] of edges) {
 		const [ax, ay] = getCoord(a)
 		const [bx, by] = getCoord(b)
 		const angle = Math.atan2(by - ay, bx - ax)
@@ -182,8 +163,26 @@ const drawValues = () => {
 		ctx.lineTo(qx - nx * gap, qy - ny * gap)
 		ctx.stroke()
 	}
+}
+
+const drawViewMode = () => {
+	ctx.strokeStyle = 'rgba(255, 127, 0, 0.3)'
+	drawEdges(edges)
 
 	ctx.font = space * 0.3 + 'px monospace'
+	ctx.textAlign = 'center'
+	ctx.textBaseline = 'middle'
+	ctx.fillStyle = '#fff'
+	for (const point of points) {
+		ctx.fillText(point, ...getCoord(point))
+	}
+}
+
+const drawValues = () => {
+	ctx.strokeStyle = 'rgba(0, 192, 255, 0.5)'
+	drawEdges(used)
+
+	ctx.font = space * 0.22 + 'px monospace'
 	ctx.textAlign = 'center'
 	ctx.textBaseline = 'middle'
 	for (const point of points) {
@@ -194,28 +193,58 @@ const drawValues = () => {
 	}
 }
 
+const divisions = 10
+const interpolate = (row0, col0, min, range) => {
+	const points = [
+		mat[row0][col0],
+		mat[row0][col0 + 1],
+		mat[row0 + 1][col0],
+		mat[row0 + 1][col0 + 1],
+	]
+
+	if (points.some((p) => nodeVal[p] === undefined)) return
+
+	const subSpace = space / divisions
+	const [x0, y0] = getCoord(points[0])
+	const [x1, y1] = getCoord(points[3])
+	const [v00, v01, v10, v11] = points.map((p) => nodeVal[p])
+
+	for (let i = 0; i < divisions; i++) {
+		const ni = (i + 0.5) / divisions
+		const y = y0 + (y1 - y0) * ni
+		const vi0 = v00 + (v10 - v00) * ni
+		const vi1 = v01 + (v11 - v01) * ni
+		for (let j = 0; j < divisions; j++) {
+			const nj = (j + 0.5) / divisions
+			const x = x0 + (x1 - x0) * nj
+			const val = vi0 + (vi1 - vi0) * nj
+			const ratio = (val - min) / range
+			const color = highColor.map((c, i) => c + ratio * (lowColor[i] - c))
+			ctx.fillStyle = `rgb(${color.join(',')})`
+			ctx.fillRect(x - subSpace / 2, y - subSpace / 2, subSpace, subSpace)
+		}
+	}
+}
+
 const drawColors = () => {
-	const nRows = mat.length
-	const nCols = mat[0].length
 	const values = Object.values(nodeVal)
 	const minVal = Math.min(...values)
 	const maxVal = Math.max(...values)
 	const range = maxVal - minVal
-
-	const minColor = [0, 0, 255]
-	const maxColor = [255, 255, 0]
-
+	const nRows = mat.length - 1
+	const nCols = mat[0].length - 1
 	for (let i = 0; i < nRows; i++) {
-		for (let j = 0; j < nCols; ++j) {
-			const point = mat[i][j]
-			const val = nodeVal[point]
-			if (val === undefined) continue
-			const ratio = (val - minVal) / range
-			const color = minColor.map((c, i) => c + (maxColor[i] - c) * ratio)
-			ctx.fillStyle = `rgb(${color.join(',')})`
-			const [x, y] = getCoord(point)
-			ctx.fillRect(x - space * 0.5, y - space * 0.5, space, space)
+		for (let j = 0; j < nCols; j++) {
+			interpolate(i, j, minVal, range)
 		}
+	}
+
+	ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'
+	for (const point of points) {
+		const [x, y] = getCoord(point)
+		ctx.beginPath()
+		ctx.arc(x, y, space * 0.03, 0, Math.PI * 2)
+		ctx.fill()
 	}
 }
 
