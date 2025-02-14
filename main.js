@@ -77,7 +77,6 @@ const calculate = () => {
 		.map(([a, b, c]) => [a, b, parseFloat(c)])
 
 	const calcDist = (a, b) => {
-		console.log({ a, b })
 		const [ai, aj] = toPos[a]
 		const [bi, bj] = toPos[b]
 		return Math.sqrt((ai - bi) ** 2 + (aj - bj) ** 2)
@@ -101,7 +100,7 @@ const calculate = () => {
 		div.appendChild(line)
 	})
 
-	localStorage.setItem('readings', readings);
+	localStorage.setItem('readings', readings)
 }
 
 const resizeCanvas = () => {
@@ -112,12 +111,13 @@ const resizeCanvas = () => {
 	canvas.height = Math.round(space * mat.length)
 }
 
-const drawCanvas = () => {
-	ctx.fillStyle = '#444'
-	ctx.fillRect(0, 0, canvas.width, canvas.height)
+const LABELS = 'labels'
+const VALUES = 'values'
+let viewMode = LABELS
 
+const drawViewMode = () => {
 	ctx.strokeStyle = 'rgba(255, 127, 0, 0.3)'
-	ctx.lineWidth = 5
+	ctx.lineWidth = space * 0.1
 	ctx.lineCap = 'round'
 	ctx.lineJoin = 'round'
 	for (const [a, b] of edges) {
@@ -127,12 +127,38 @@ const drawCanvas = () => {
 		ctx.stroke()
 	}
 
-	ctx.font = canvas.width * 0.04 + 'px monospace'
+	ctx.font = space * 0.3 + 'px monospace'
 	ctx.textAlign = 'center'
 	ctx.textBaseline = 'middle'
 	ctx.fillStyle = '#fff'
 	for (const point of points) {
 		ctx.fillText(point, ...getCoord(point))
+	}
+}
+
+const drawValues = () => {
+	ctx.font = space * 0.3 + 'px monospace'
+	ctx.textAlign = 'center'
+	ctx.textBaseline = 'middle'
+	for (const point of points) {
+		const val = nodeVal[point]
+		const text = val === undefined ? point : val
+		ctx.fillStyle = val === undefined ? '#666' : '#fff'
+		ctx.fillText(text, ...getCoord(point))
+	}
+}
+
+const drawCanvas = () => {
+	ctx.fillStyle = '#444'
+	ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+	switch (viewMode) {
+		case LABELS:
+			drawViewMode()
+			break
+		case VALUES:
+			drawValues()
+			break
 	}
 }
 
@@ -151,7 +177,7 @@ window.addEventListener('resize', () => {
 
 const loadReadings = async () => {
 	let text = localStorage.getItem('readings')
-	if (text) return text;
+	if (text) return text
 	const req = await fetch('./readings.txt')
 	text = await req.text()
 	return text
@@ -163,3 +189,8 @@ readingsInput.value = readings
 calculate()
 resizeCanvas()
 drawCanvas()
+
+canvas.addEventListener('click', () => {
+	viewMode = viewMode === LABELS ? VALUES : LABELS
+	drawCanvas()
+})
