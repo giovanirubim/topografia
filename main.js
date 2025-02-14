@@ -35,6 +35,7 @@ let readings = ``.trim().replace(/[‘’]/g, "'").replace(/“”/g, '"')
 let outputText = ''
 let edges = []
 let nodeVal = {}
+let used = []
 
 const spreadMeasurements = () => {
 	let changed = true
@@ -47,12 +48,14 @@ const spreadMeasurements = () => {
 				outputText += `${a} -> ${b} = ${nodeVal[a]} + ${c} = ${val}\n`
 				changed = true
 				nodeVal[b] = val
+				used.push([a, b])
 			}
 			if (nodeVal[b] !== undefined && nodeVal[a] === undefined) {
 				const val = nodeVal[b] - c
 				outputText += `${b} -> ${a} = ${nodeVal[b]} - ${c} = ${val}\n`
 				changed = true
 				nodeVal[a] = val
+				used.push([b, a])
 			}
 		}
 	}
@@ -95,7 +98,7 @@ const calculate = () => {
 	const div = document.querySelector('#output')
 	div.innerHTML = ''
 	outputText.split('\n').forEach((text) => {
-		const line = document.createElement('p')
+		const line = document.createElement('div')
 		line.textContent = text
 		div.appendChild(line)
 	})
@@ -113,7 +116,8 @@ const resizeCanvas = () => {
 
 const LABELS = 'labels'
 const VALUES = 'values'
-let viewMode = LABELS
+const viewModes = [LABELS, VALUES]
+let viewMode = VALUES
 
 const drawViewMode = () => {
 	ctx.strokeStyle = 'rgba(255, 127, 0, 0.3)'
@@ -137,6 +141,35 @@ const drawViewMode = () => {
 }
 
 const drawValues = () => {
+	ctx.strokeStyle = 'rgba(0, 192, 255, 0.3)'
+	ctx.lineWidth = space * 0.05
+	ctx.lineCap = 'round'
+	ctx.lineJoin = 'round'
+	const tip = space * 0.2
+	const tilt = Math.PI * 0.85
+	const gap = space * 0.2
+	for (const [a, b] of used) {
+		const [ax, ay] = getCoord(a)
+		const [bx, by] = getCoord(b)
+		const angle = Math.atan2(by - ay, bx - ax)
+		const mx = bx + Math.cos(angle + tilt) * tip
+		const my = by + Math.sin(angle + tilt) * tip
+		const qx = bx + Math.cos(angle - tilt) * tip
+		const qy = by + Math.sin(angle - tilt) * tip
+		const dx = bx - ax
+		const dy = by - ay
+		const dist = Math.hypot(dx, dy)
+		const nx = dx / dist
+		const ny = dy / dist
+		ctx.beginPath()
+		ctx.moveTo(ax + nx * gap, ay + ny * gap)
+		ctx.lineTo(bx - nx * gap, by - ny * gap)
+		ctx.moveTo(mx - nx * gap, my - ny * gap)
+		ctx.lineTo(bx - nx * gap, by - ny * gap)
+		ctx.lineTo(qx - nx * gap, qy - ny * gap)
+		ctx.stroke()
+	}
+
 	ctx.font = space * 0.3 + 'px monospace'
 	ctx.textAlign = 'center'
 	ctx.textBaseline = 'middle'
@@ -191,6 +224,7 @@ resizeCanvas()
 drawCanvas()
 
 canvas.addEventListener('click', () => {
-	viewMode = viewMode === LABELS ? VALUES : LABELS
+	const modeIndex = viewModes.indexOf(viewMode)
+	viewMode = viewModes[(modeIndex + 1) % viewModes.length]
 	drawCanvas()
 })
