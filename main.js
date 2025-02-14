@@ -16,7 +16,8 @@ const mat = grid
 	.map((row) => row.trim().split(/\s+/))
 
 const highColor = [255, 127, 0]
-const lowColor = [32, 32, 192]
+const lowColor = [0, 127, 255]
+const nullColor = [127, 127, 127]
 
 const points = mat.flat()
 
@@ -52,26 +53,31 @@ const spreadMeasurements = () => {
 				outputText += `${a} -> ${b} = ${nodeVal[a]} + ${c} = ${val}\n`
 				changed = true
 				nodeVal[b] = val
-				used.push([a, b])
+				used.push([a, b, c])
 			}
 			if (nodeVal[a] === undefined && nodeVal[b] !== undefined) {
 				const val = nodeVal[b] - c
 				outputText += `${b} -> ${a} = ${nodeVal[b]} - ${c} = ${val}\n`
 				changed = true
 				nodeVal[a] = val
-				used.push([b, a])
+				used.push([b, a, -c])
 			}
 		}
 	}
 	return outputText
 }
 
-const calculate = () => {
-	const text = readings
+const fixText = (text) => {
+	return text
 		.trim()
 		.replace(/[‘’]/g, "'")
 		.replace(/“”/g, '"')
+		.replace(/,/g, '.')
 		.toUpperCase()
+}
+
+const calculate = () => {
+	const text = fixText(readings)
 
 	if (!text) return
 
@@ -135,14 +141,26 @@ const COLORS = 'colors'
 const viewModes = [LABELS, VALUES, COLORS]
 let viewMode = LABELS
 
-const drawEdges = (edges) => {
-	ctx.lineWidth = space * 0.05
+const drawEdges = (edges, varyThickness, magColor) => {
+	const lineWidth = space * 0.05
 	ctx.lineCap = 'round'
 	ctx.lineJoin = 'round'
+	ctx.lineWidth = lineWidth
 	const tip = space * 0.15
 	const tilt = Math.PI * 0.85
 	const gap = space * 0.3
-	for (const [a, b] of edges) {
+	const maxDiff = Math.max(...edges.map(([_a, _b, c]) => Math.abs(c)))
+	const colors = {
+		0: nullColor,
+		1: highColor,
+		'-1': lowColor,
+	}
+	for (const [a, b, c] of edges) {
+		if (varyThickness) {
+			const factor = 0.25 + (1.5 * Math.abs(c)) / maxDiff
+			ctx.lineWidth = lineWidth * factor
+		}
+		if (magColor) ctx.strokeStyle = colors[Math.sign(c)]
 		const [ax, ay] = getCoord(a)
 		const [bx, by] = getCoord(b)
 		const angle = Math.atan2(by - ay, bx - ax)
@@ -166,8 +184,8 @@ const drawEdges = (edges) => {
 }
 
 const drawViewMode = () => {
-	ctx.strokeStyle = 'rgba(255, 127, 0, 0.3)'
-	drawEdges(edges)
+	ctx.strokeStyle = '#f70'
+	drawEdges(edges, true, false)
 
 	ctx.font = space * 0.3 + 'px monospace'
 	ctx.textAlign = 'center'
@@ -180,7 +198,7 @@ const drawViewMode = () => {
 
 const drawValues = () => {
 	ctx.strokeStyle = 'rgba(0, 192, 255, 0.5)'
-	drawEdges(used)
+	drawEdges(used, true, true)
 
 	ctx.font = space * 0.22 + 'px monospace'
 	ctx.textAlign = 'center'
@@ -295,7 +313,6 @@ const loadReadings = async () => {
 				.trim()
 		)
 		.join('\n')
-		.toUpperCase()
 }
 
 readings = await loadReadings()
