@@ -41,29 +41,53 @@ let edges = []
 let nodeVal = {}
 let used = []
 
+const strSign = (val) => {
+	return val < 0 ? '-' : val > 0 ? '+' : ''
+}
+
+const signed = (val) => {
+	return strSign(val) + Math.abs(val)
+}
+
+const toTableCol = (val) => {
+	return val.toString().replace('.', ',')
+}
+
+const toTableRow = (arr) => {
+	return arr.map(toTableCol).join('\t') + '\n'
+}
+
 const spreadMeasurements = () => {
 	used = []
 	let changed = true
-	let outputText = ''
+	let outputText = toTableRow([
+		'Leitura 1',
+		'Visada vante',
+		'Leitura 2',
+		'Diferença Leitura 1 - 2',
+	])
 	while (changed) {
 		changed = false
 		for (const [a, b, c] of edges) {
-			if (nodeVal[a] !== undefined && nodeVal[b] === undefined) {
-				const val = (nodeVal[a] + c).toFixed(5) * 1
-				outputText += `${a} -> ${b} = ${nodeVal[a]} + ${c} = ${val}\n`
-				changed = true
-				nodeVal[b] = val
-				used.push([a, b, c])
+			const neg = -c
+			const useful =
+				(nodeVal[a] !== undefined) !== (nodeVal[b] !== undefined)
+			if (!useful) continue
+			const row = [0, `${a} - ${b}`, signed(c), signed(neg)]
+			changed = true
+			if (nodeVal[b] === undefined) {
+				const res = (nodeVal[b] = round(nodeVal[a] + neg, 5))
+				row.push(`${a} (${nodeVal[a]}) + ${neg} = ${res} (${b})`)
+				used.push([a, b, neg])
+			} else {
+				const res = (nodeVal[a] = round(nodeVal[b] + neg, 5))
+				row.push(`${b} (${nodeVal[b]}) - ${neg} = ${res} (${a})`)
+				used.push([b, a, -neg])
 			}
-			if (nodeVal[a] === undefined && nodeVal[b] !== undefined) {
-				const val = (nodeVal[b] - c).toFixed(5) * 1
-				outputText += `${b} -> ${a} = ${nodeVal[b]} - ${c} = ${val}\n`
-				changed = true
-				nodeVal[a] = val
-				used.push([b, a, -c])
-			}
+			outputText += toTableRow(row)
 		}
 	}
+
 	return outputText
 }
 
@@ -74,6 +98,24 @@ const fixText = (text) => {
 		.replace(/“”/g, '"')
 		.replace(/,/g, '.')
 		.toUpperCase()
+}
+
+const compareChar = (a, b) => {
+	a = a[0].toLowerCase()
+	b = b[0].toLowerCase()
+	if (a < b) return -1
+	if (a > b) return 1
+	return 0
+}
+
+const round = (x, n = 0) => {
+	return Number(Number(x).toFixed(n))
+}
+
+const prefixVal = { '"': 2, "'": 1, undefined: 0 }
+
+const compare = (a, b) => {
+	return prefixVal[a[1]] - prefixVal[b[1]] || compareChar(a, b)
 }
 
 const calculate = () => {
@@ -88,7 +130,7 @@ const calculate = () => {
 		.filter((l) => l && !l.includes('!'))
 		.map((l) => l.split(/\s+/))
 		.filter((l) => l.length === 3)
-		.map(([a, b, c]) => [a, b, parseFloat(c)])
+		.map(([a, b, c]) => [a, b, round(c / 100, 5)])
 
 	const calcDist = (a, b) => {
 		const [ai, aj] = toPos[a]
@@ -99,32 +141,36 @@ const calculate = () => {
 	for (const [a, b] of edges) {
 		const dist = calcDist(a, b)
 		if (dist > Math.SQRT2 * 1.001) {
-			outputText += `Aviso: distância elevada ${a} -> ${b}\n`
+			// outputText += `Aviso: distância elevada ${a} -> ${b}\n`
 		}
 	}
 
 	nodeVal = { A: 0 }
 	outputText += spreadMeasurements()
 
+	outputText += toTableRow(['Ponto', 'H (cota)'])
+	points
+		.slice()
+		.sort(compare)
+		.forEach((p) => {
+			if (nodeVal[p] === undefined) return
+			outputText += toTableRow([p, nodeVal[p]])
+		})
+
 	for (let [a, b, measured] of edges) {
 		const aVal = nodeVal[a]
 		const bVal = nodeVal[b]
-		const calculated = (bVal - aVal).toFixed(2) * 1
+		const calculated = round(bVal - aVal, 5)
 		if (isNaN(calculated)) continue
-		const diff = (measured - calculated).toFixed(2) * 1
+		const diff = round(measured - calculated, 5)
 		if (diff === 0) continue
 		if (measured !== diff) {
-			outputText += `Aviso: Leitura ${a} -> ${b} = ${measured} difere do calculado (${calculated}). dif.: ${diff})\n`
+			// outputText += `Aviso: Leitura ${a} -> ${b} = ${measured} difere do calculado (${calculated}). dif.: ${diff})\n`
 		}
 	}
 
-	const div = document.querySelector('#output')
-	div.innerHTML = ''
-	outputText.split('\n').forEach((text) => {
-		const line = document.createElement('div')
-		line.textContent = text
-		div.appendChild(line)
-	})
+	const output = document.querySelector('#output')
+	output.value = outputText
 
 	localStorage.setItem('readings', readings)
 }

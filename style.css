@@ -17,20 +17,14 @@ body {
 	border-radius: 5px;
 	padding: 10px;
 }
-.readings > .content {
+.content {
 	display: flex;
 }
-.readings > .content > textarea {
+.content > textarea {
 	padding: 10px;
 	height: 200px;
 	flex-grow: 1;
 	border: none;
 	background-color: #333;
 	color: #ddd;
-}
-.output > .content {
-	background-color: #444;
-	padding: 10px;
-	max-height: 300px;
-	overflow: auto;
 }
