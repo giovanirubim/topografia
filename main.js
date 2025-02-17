@@ -300,10 +300,10 @@ window.addEventListener('resize', () => {
 
 const loadReadings = async () => {
 	let text = localStorage.getItem('readings')
-	// if (!text) {
-	const req = await fetch('./readings.txt')
-	text = await req.text()
-	// }
+	if (!text) {
+		const req = await fetch('./readings.txt')
+		text = await req.text()
+	}
 	return text
 		.trim()
 		.split('\n')
