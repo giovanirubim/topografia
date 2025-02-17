@@ -285,7 +285,7 @@ const interpolate = (row0, col0, min, range) => {
 			const x = x0 + (x1 - x0) * nj
 			const val = vi0 + (vi1 - vi0) * nj
 			const ratio = (val - min) / range
-			const color = highColor.map((c, i) => c + ratio * (lowColor[i] - c))
+			const color = lowColor.map((c, i) => c + ratio * (highColor[i] - c))
 			ctx.fillStyle = `rgb(${color.join(',')})`
 			ctx.fillRect(x - subSpace / 2, y - subSpace / 2, subSpace, subSpace)
 		}
