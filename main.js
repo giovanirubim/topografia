@@ -114,7 +114,7 @@ const calculate = () => {
 		const diff = (measured - calculated).toFixed(2) * 1
 		if (diff === 0) continue
 		if (measured !== diff) {
-			outputText += `Aviso: Leitura ${a} -> ${b} = ${measured} difere do calculado (${calculated}, ${diff})\n`
+			outputText += `Aviso: Leitura ${a} -> ${b} = ${measured} difere do calculado (${calculated}). dif.: ${diff})\n`
 		}
 	}
 
