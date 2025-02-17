@@ -49,14 +49,14 @@ const spreadMeasurements = () => {
 		changed = false
 		for (const [a, b, c] of edges) {
 			if (nodeVal[a] !== undefined && nodeVal[b] === undefined) {
-				const val = nodeVal[a] + c
+				const val = (nodeVal[a] + c).toFixed(5) * 1
 				outputText += `${a} -> ${b} = ${nodeVal[a]} + ${c} = ${val}\n`
 				changed = true
 				nodeVal[b] = val
 				used.push([a, b, c])
 			}
 			if (nodeVal[a] === undefined && nodeVal[b] !== undefined) {
-				const val = nodeVal[b] - c
+				const val = (nodeVal[b] - c).toFixed(5) * 1
 				outputText += `${b} -> ${a} = ${nodeVal[b]} - ${c} = ${val}\n`
 				changed = true
 				nodeVal[a] = val
@@ -106,13 +106,15 @@ const calculate = () => {
 	nodeVal = { A: 0 }
 	outputText += spreadMeasurements()
 
-	for (let [a, b, val] of edges) {
+	for (let [a, b, measured] of edges) {
 		const aVal = nodeVal[a]
 		const bVal = nodeVal[b]
-		const diff = bVal - aVal
-		if (isNaN(diff)) continue
-		if (val !== diff) {
-			outputText += `Aviso: Leitura ${a} -> ${b} = ${val} difere do calculado\n`
+		const calculated = (bVal - aVal).toFixed(2) * 1
+		if (isNaN(calculated)) continue
+		const diff = (measured - calculated).toFixed(2) * 1
+		if (diff === 0) continue
+		if (measured !== diff) {
+			outputText += `Aviso: Leitura ${a} -> ${b} = ${measured} difere do calculado (${calculated}, ${diff})\n`
 		}
 	}
 
@@ -139,7 +141,7 @@ const LABELS = 'labels'
 const VALUES = 'values'
 const COLORS = 'colors'
 const viewModes = [LABELS, VALUES, COLORS]
-let viewMode = LABELS
+let viewMode = VALUES
 
 const drawEdges = (edges, varyThickness, magColor) => {
 	const lineWidth = space * 0.05
@@ -298,10 +300,10 @@ window.addEventListener('resize', () => {
 
 const loadReadings = async () => {
 	let text = localStorage.getItem('readings')
-	if (!text) {
-		const req = await fetch('./readings.txt')
-		text = await req.text()
-	}
+	// if (!text) {
+	const req = await fetch('./readings.txt')
+	text = await req.text()
+	// }
 	return text
 		.trim()
 		.split('\n')
